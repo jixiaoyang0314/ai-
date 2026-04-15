@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FaceMatch</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="topbar">
+        <div class="topbar-inner">
+            <div class="brand" aria-label="FaceMatch">
+                <div class="brand-mark" aria-hidden="true">
+                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M14 2C19.2 2 23.8 6.3 23.8 11.6C23.8 18.8 18.8 24.8 14 26C9.2 24.8 4.2 18.8 4.2 11.6C4.2 6.3 8.8 2 14 2Z" stroke="currentColor" stroke-width="2.2"/>
+                        <path d="M9.2 13.2L12.6 16.6L18.9 10.3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <div class="brand-text">
+                    <div class="brand-name">FaceMatch</div>
+                    <div class="brand-sub">区域监控视频检索演示系统</div>
+                </div>
+            </div>
+
+            <nav class="top-nav" aria-label="顶部导航">
+                <a href="home.html" class="back-btn">← 返回选择</a>
+                <button class="nav-item" type="button">接入指南</button>
+                <button class="nav-item" type="button">点位管理</button>
+                <button class="nav-item" type="button">联系我们</button>
+                <button class="nav-item" type="button">演示说明</button>
+                <div id="userContainer"></div>
+            </nav>
+        </div>
+    </header>
+
+    <div class="user-menu" id="userMenu">
+        <div class="user-menu-item" id="userName"></div>
+        <button class="user-menu-item" id="logoutBtn">退出登录</button>
+    </div>
+
+    <main class="page monitor-page">
+        <img class="side-face side-face--left" src="side-images/0d5cdfc5-d9f7-4a7a-8f26-48f88a2f205b.png" alt="" aria-hidden="true">
+        <img class="side-face side-face--right" src="side-images/屏幕截图 2026-03-24 235459.png" alt="" aria-hidden="true">
+
+        <section class="monitor-hero">
+            <div class="monitor-shell">
+                <div class="monitor-search-card">
+                    <div class="monitor-eyebrow">视频检索演示</div>
+                    <h1 class="monitor-title">区域监控视频智能调取</h1>
+                    <p class="monitor-subtitle">输入目标特征并选择地区，系统将模拟调取区域监控流并自动开始播放，适合课堂演示与方案展示。</p>
+
+                    <div class="search-box monitor-search-box">
+                        <svg class="search-icon" width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                            <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="2"/>
+                            <path d="M12 12 L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                        <input type="text" class="search-input" id="searchInput" placeholder="输入目标描述，例如：黑色外套、戴帽子、背双肩包">
+                        <button class="search-btn" id="searchBtn" type="button">开始检索</button>
+                    </div>
+
+                    <div class="search-tips monitor-tips">
+                        <span class="tip-label">提示:</span>
+                        <span>你可以先选择北京市 / 北京市 / 海淀区，再点击开始检索查看演示效果。</span>
+                    </div>
+                </div>
+
+                <aside class="region-panel">
+                    <div class="region-panel-title">检索区域</div>
+                    <div class="region-panel-sub">请选择省、市、区，系统将模拟调取该区域监控点位。</div>
+
+                    <div class="region-field">
+                        <label for="provinceSelect">省份</label>
+                        <select id="provinceSelect" class="region-select">
+                            <option value="">请选择省份</option>
+                            <option value="北京市">北京市</option>
+                            <option value="上海市">上海市</option>
+                            <option value="广东省">广东省</option>
+                        </select>
+                    </div>
+
+                    <div class="region-field">
+                        <label for="citySelect">城市</label>
+                        <select id="citySelect" class="region-select">
+                            <option value="">请选择城市</option>
+                        </select>
+                    </div>
+
+                    <div class="region-field">
+                        <label for="districtSelect">区县</label>
+                        <select id="districtSelect" class="region-select">
+                            <option value="">请选择区县</option>
+                        </select>
+                    </div>
+
+                    <div class="region-summary" id="regionSummary">当前未选择有效区域</div>
+                </aside>
+            </div>
+        </section>
+
+        <section class="gallery-section monitor-results-section">
+            <div class="gallery-header">
+                <div>
+                    <h2 class="gallery-title">区域监控视频流</h2>
+                    <div class="monitor-results-sub">地区匹配成功后会展示 4 路自动播放的视频画面</div>
+                </div>
+                <span class="result-count" id="resultCount">等待检索</span>
+            </div>
+
+            <div class="video-grid" id="videoGrid"></div>
+            <div class="empty-state" id="emptyState">
+                <div class="empty-state-title">暂无视频结果</div>
+                <div class="empty-state-text">请选择检索地区并点击“开始检索”，系统将展示对应区域的视频调取结果。</div>
+            </div>
+        </section>
+
+        <section class="gallery-section suspect-results-section">
+            <div class="gallery-header">
+                <div>
+                    <h2 class="gallery-title">人物特征匹配结果</h2>
+                    <div class="monitor-results-sub">输入特征词后，将展示对应的人物图片匹配结果</div>
+                </div>
+                <span class="result-count" id="imageResultCount">等待特征检索</span>
+            </div>
+            <div class="gallery search-mode" id="gallery"></div>
+            <div class="empty-state" id="imageEmptyState">
+                <div class="empty-state-title">暂无人物结果</div>
+                <div class="empty-state-text">请输入特征词并点击“开始检索”，例如黑色外套、眼镜、背包。</div>
+            </div>
+        </section>
+    </main>
+
+    <div class="loading" id="loading" aria-hidden="true">
+        <div class="loading-panel">
+            <div class="loading-flash-wrap">
+                <img class="loading-flash-image" id="loadingFlashImage" src="" alt="搜索预览">
+            </div>
+            <div class="loading-text">正在调取区域监控视频...</div>
+            <div class="loading-progress">
+                <div class="loading-progress-bar" id="loadingProgressBar"></div>
+            </div>
+            <div class="loading-progress-text" id="loadingProgressText">0%</div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

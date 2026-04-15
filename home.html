@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FaceMatch - 选择功能</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #4f86c6;
+            --primary-dark: #3f74b1;
+            --border: rgba(79,134,198,0.16);
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+            background:
+                radial-gradient(circle at 20% 20%, rgba(79,134,198,0.08) 0 2px, transparent 2px 100%),
+                radial-gradient(circle at 80% 30%, rgba(79,134,198,0.05) 0 1.5px, transparent 1.5px 100%),
+                linear-gradient(135deg, rgba(255,255,255,0.92) 0%, rgba(243,248,254,0.96) 100%);
+            background-size: 36px 36px, 52px 52px, auto;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background:
+                linear-gradient(rgba(79,134,198,0.045) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(79,134,198,0.045) 1px, transparent 1px);
+            background-size: 120px 120px;
+            mask-image: linear-gradient(to bottom, rgba(0,0,0,0.55), transparent 85%);
+            z-index: 0;
+        }
+        .topbar {
+            height: 64px;
+            background: #fff;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 32px;
+        }
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+        .brand-mark { color: var(--primary); }
+        .brand-name {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--primary);
+        }
+        .topbar-right {
+            font-size: 13px;
+            color: #aaa;
+        }
+        .nav-login {
+            padding: 8px 18px;
+            border-radius: 8px;
+            background: #5e8fc8;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 700;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            overflow: hidden;
+            cursor: pointer;
+            box-shadow: 0 3px 10px rgba(79,134,198,0.12);
+            background: #eef5fd;
+        }
+        .user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .user-menu {
+            position: absolute;
+            top: 72px;
+            right: 24px;
+            min-width: 160px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 12px 28px rgba(0,0,0,0.14);
+            overflow: hidden;
+            display: none;
+            z-index: 50;
+        }
+        .user-menu.active { display: block; }
+        .user-menu-item {
+            width: 100%;
+            border: 0;
+            background: transparent;
+            text-align: left;
+            padding: 12px 16px;
+            font-size: 13px;
+            color: #666;
+        }
+        .user-menu-item:last-child {
+            color: var(--primary);
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .user-menu-item:last-child:hover {
+            background: #eef5fd;
+        }
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        .main::before {
+            content: '';
+            position: absolute;
+            width: 620px;
+            height: 620px;
+            border-radius: 50%;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -45%);
+            background: radial-gradient(circle, rgba(79,134,198,0.10) 0%, rgba(79,134,198,0.05) 38%, rgba(79,134,198,0.02) 56%, transparent 72%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        .main::after {
+            content: '';
+            position: absolute;
+            width: 320px;
+            height: 320px;
+            right: 12%;
+            top: 18%;
+            border-radius: 50%;
+            border: 1px solid rgba(79,134,198,0.10);
+            pointer-events: none;
+            z-index: 0;
+        }
+        .side-face {
+            position: absolute;
+            top: 0;
+            width: min(320px, 24vw);
+            height: auto;
+            pointer-events: none;
+            user-select: none;
+            opacity: 0.95;
+            object-fit: contain;
+        }
+        .side-face--left  { left: 0;  clip-path: inset(0 0 4% 0); }
+        .side-face--right { right: 0; }
+        .page-title {
+            font-size: 32px;
+            font-weight: 900;
+            color: #1a1a1a;
+            text-align: center;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+        .page-title::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -54%);
+            width: 210px;
+            height: 250px;
+            border: 1px solid rgba(79,134,198,0.10);
+            border-radius: 46% 46% 38% 38% / 30% 30% 56% 56%;
+            clip-path: polygon(50% 0%, 88% 14%, 88% 56%, 50% 100%, 12% 56%, 12% 14%);
+            z-index: -1;
+            box-shadow: inset 0 0 0 12px rgba(79,134,198,0.02);
+            pointer-events: none;
+        }
+        .page-title::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -54%);
+            width: 126px;
+            height: 126px;
+            border-radius: 50%;
+            border: 1px dashed rgba(79,134,198,0.10);
+            z-index: -1;
+            pointer-events: none;
+        }
+        .page-sub {
+            font-size: 15px;
+            color: #aaa;
+            text-align: center;
+            margin-bottom: 48px;
+            position: relative;
+            z-index: 1;
+        }
+        .page-sub::after {
+            content: '';
+            display: block;
+            width: 96px;
+            height: 3px;
+            margin: 16px auto 0;
+            border-radius: 999px;
+            background: linear-gradient(90deg, transparent 0%, rgba(79,134,198,0.18) 18%, rgba(79,134,198,0.35) 50%, rgba(79,134,198,0.18) 82%, transparent 100%);
+        }
+        .cards {
+            display: flex;
+            gap: 28px;
+            flex-wrap: wrap;
+            justify-content: center;
+            position: relative;
+            z-index: 1;
+        }
+        .card {
+            background: #fff;
+            border-radius: 20px;
+            padding: 40px 36px;
+            width: 300px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.07);
+            text-decoration: none;
+            color: inherit;
+            border: 2px solid transparent;
+            transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+            animation: fadeUp 0.4s ease both;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 16px;
+        }
+        .card:nth-child(2) { animation-delay: 0.1s; }
+        .card:hover {
+            border-color: rgba(79,134,198,0.55);
+            transform: translateY(-6px);
+            box-shadow: 0 16px 40px rgba(79,134,198,0.10);
+        }
+        .card-icon {
+            width: 72px;
+            height: 72px;
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+        }
+        .card-icon--suspect { background: #eaf2fb; }
+        .card-icon--elderly { background: #eef4fb; }
+        .card-title {
+            font-size: 20px;
+            font-weight: 900;
+            color: #1a1a1a;
+        }
+        .card-desc {
+            font-size: 13px;
+            color: #999;
+            line-height: 1.7;
+        }
+        .card-btn {
+            margin-top: 8px;
+            padding: 11px 28px;
+            border-radius: 10px;
+            border: 0;
+            font-size: 14px;
+            font-weight: 800;
+            color: #fff;
+            background: #5e8fc8;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .card-btn:hover { opacity: 0.88; }
+        .card-btn--elderly {
+            background: #5e8fc8;
+        }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @media (max-width: 600px) {
+            .side-face { display: none; }
+            .cards { flex-direction: column; align-items: center; }
+            .card { width: 100%; max-width: 340px; }
+            .page-title { font-size: 24px; }
+        }
+    </style>
+</head>
+<body>
+    <header class="topbar">
+        <a class="brand" href="home.html">
+            <svg class="brand-mark" width="26" height="26" viewBox="0 0 28 28" fill="none">
+                <path d="M14 2C19.2 2 23.8 6.3 23.8 11.6C23.8 18.8 18.8 24.8 14 26C9.2 24.8 4.2 18.8 4.2 11.6C4.2 6.3 8.8 2 14 2Z" stroke="currentColor" stroke-width="2.2"/>
+                <path d="M9.2 13.2L12.6 16.6L18.9 10.3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span class="brand-name">FaceMatch</span>
+        </a>
+        <div class="topbar-right" id="userContainer"></div>
+    </header>
+
+    <div class="user-menu" id="userMenu">
+        <div class="user-menu-item" id="userName"></div>
+        <button class="user-menu-item" id="logoutBtn">退出登录</button>
+    </div>
+
+    <main class="main">
+        <img class="side-face side-face--left"  src="side-images/0d5cdfc5-d9f7-4a7a-8f26-48f88a2f205b.png" alt="" aria-hidden="true">
+        <img class="side-face side-face--right" src="side-images/屏幕截图 2026-03-24 235459.png" alt="" aria-hidden="true">
+
+        <div class="page-title">选择识别方向</div>
+        <div class="page-sub">请选择你需要的 AI 人脸识别功能</div>
+
+        <div class="cards">
+            <div class="card" onclick="location.href='index.html'" role="button" tabindex="0">
+                <div class="card-icon card-icon--suspect">🔍</div>
+                <div class="card-title">嫌疑人识别</div>
+                <div class="card-desc">通过特征描述快速搜索匹配嫌疑人，支持性别、发型、体型等多维度识别。</div>
+                <button class="card-btn" type="button">进入系统</button>
+            </div>
+
+            <div class="card" onclick="location.href='elderly.html'" role="button" tabindex="0">
+                <div class="card-icon card-icon--elderly">👴</div>
+                <div class="card-title">失踪老人识别</div>
+                <div class="card-desc">通过特征描述帮助寻找失踪老人，支持年龄、着装、体貌等特征匹配。</div>
+                <button class="card-btn card-btn--elderly" type="button">进入系统</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // 检查用户登录状态
+        function initUser() {
+            const user = JSON.parse(localStorage.getItem('user'));
+            const container = document.getElementById('userContainer');
+            const userMenu = document.getElementById('userMenu');
+            const userName = document.getElementById('userName');
+            const logoutBtn = document.getElementById('logoutBtn');
+            container.innerHTML = '';
+
+            if (user) {
+                // 已登录：显示头像
+                const avatar = document.createElement('div');
+                avatar.className = 'user-avatar';
+                avatar.innerHTML = `<img src="${user.avatar}" alt="${user.username}">`;
+                avatar.onclick = (e) => {
+                    e.stopPropagation();
+                    userMenu.classList.toggle('active');
+                };
+                container.appendChild(avatar);
+
+                userName.textContent = user.username;
+                logoutBtn.onclick = () => {
+                    localStorage.removeItem('user');
+                    window.location.href = 'login.html';
+                };
+
+                // 点击页面其他地方关闭菜单
+                document.addEventListener('click', (e) => {
+                    if (!e.target.closest('.user-avatar') && !e.target.closest('.user-menu')) {
+                        userMenu.classList.remove('active');
+                    }
+                });
+            } else {
+                // 未登录：显示登录按钮
+                const loginBtn = document.createElement('a');
+                loginBtn.href = 'login.html';
+                loginBtn.className = 'nav-login';
+                loginBtn.textContent = '登录';
+                container.appendChild(loginBtn);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', initUser);
+    </script>
+</body>
+</html>

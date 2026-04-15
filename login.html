@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - FaceMatch</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #4f86c6;
+            --primary-dark: #3f74b1;
+            --border: rgba(79,134,198,0.16);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+            background: #f7f7f9;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 顶栏 */
+        .topbar {
+            height: 64px;
+            background: #fff;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 32px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+
+        .brand-mark {
+            color: var(--primary);
+        }
+
+        .brand-name {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        /* 主区域 */
+        .main {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 两侧装饰图 */
+        .side-face {
+            position: absolute;
+            top: 0;
+            width: min(320px, 24vw);
+            height: auto;
+            pointer-events: none;
+            user-select: none;
+            opacity: 0.95;
+            object-fit: contain;
+        }
+
+        .side-face--left  { left: 0;  clip-path: inset(0 0 4% 0); }
+        .side-face--right { right: 0; }
+
+        /* 登录卡片 */
+        .card {
+            background: #fff;
+            border-radius: 20px;
+            padding: 40px 36px;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.08);
+            position: relative;
+            z-index: 1;
+            animation: fadeUp 0.4s ease both;
+        }
+
+        .card-logo {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .card-logo svg {
+            color: var(--primary);
+        }
+
+        .card-title {
+            font-size: 24px;
+            font-weight: 900;
+            color: #1a1a1a;
+            text-align: center;
+            margin-bottom: 6px;
+        }
+
+        .card-sub {
+            font-size: 13px;
+            color: #aaa;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .login-switch {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            background: #edf4fb;
+            border-radius: 12px;
+            padding: 6px;
+            margin-bottom: 22px;
+        }
+
+        .login-tab {
+            border: 0;
+            background: transparent;
+            border-radius: 9px;
+            padding: 11px 12px;
+            font-size: 14px;
+            font-weight: 800;
+            color: #777;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .login-tab.active {
+            background: #fff;
+            color: var(--primary);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+        }
+
+        .login-hint {
+            font-size: 12px;
+            color: #999;
+            margin: -8px 0 18px;
+            text-align: center;
+        }
+
+        /* 表单 */
+        .field {
+            margin-bottom: 18px;
+        }
+
+        .field label {
+            display: block;
+            font-size: 13px;
+            font-weight: 700;
+            color: #444;
+            margin-bottom: 7px;
+        }
+
+        .field input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            font-size: 14px;
+            color: #1a1a1a;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            background: #fafafa;
+        }
+
+        .field input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79,134,198,0.12);
+            background: #fff;
+        }
+
+        .field input::placeholder {
+            color: #ccc;
+        }
+
+        /* 记住我 & 忘记密码 */
+        .row-extra {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            font-size: 13px;
+        }
+
+        .remember {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #666;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .remember input[type="checkbox"] {
+            accent-color: var(--primary);
+            width: 15px;
+            height: 15px;
+            cursor: pointer;
+        }
+
+        .forgot {
+            color: var(--primary);
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .forgot:hover { text-decoration: underline; }
+
+        /* 登录按钮 */
+        .btn-login {
+            width: 100%;
+            padding: 14px;
+            border: 0;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 900;
+            color: #fff;
+            background: #5e8fc8;
+            box-shadow: 0 6px 16px rgba(79,134,198,0.12);
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.15s;
+            margin-bottom: 20px;
+        }
+
+        .btn-login:hover  { opacity: 0.9; transform: translateY(-1px); }
+        .btn-login:active { transform: translateY(0); }
+
+        /* 分割线 */
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            color: #ccc;
+            font-size: 12px;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #eee;
+        }
+
+        /* 第三方登录 */
+        .btn-third {
+            width: 100%;
+            padding: 12px;
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 700;
+            color: #444;
+            background: #fff;
+            cursor: pointer;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .btn-third:hover {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(255,42,94,0.06);
+        }
+
+        /* 注册引导 */
+        .register-tip {
+            text-align: center;
+            font-size: 13px;
+            color: #aaa;
+            margin-top: 20px;
+        }
+
+        .register-tip a {
+            color: var(--primary);
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .register-tip a:hover { text-decoration: underline; }
+
+        /* 错误提示 */
+        .error-msg {
+            display: none;
+            background: #eef4fb;
+            border: 1px solid rgba(31,94,168,0.18);
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 13px;
+            color: var(--primary);
+            margin-bottom: 18px;
+            font-weight: 600;
+        }
+
+        .error-msg.show { display: block; }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 600px) {
+            .side-face { display: none; }
+            .card { padding: 30px 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="topbar">
+        <a class="brand" href="index.html">
+            <svg class="brand-mark" width="26" height="26" viewBox="0 0 28 28" fill="none">
+                <path d="M14 2C19.2 2 23.8 6.3 23.8 11.6C23.8 18.8 18.8 24.8 14 26C9.2 24.8 4.2 18.8 4.2 11.6C4.2 6.3 8.8 2 14 2Z" stroke="currentColor" stroke-width="2.2"/>
+                <path d="M9.2 13.2L12.6 16.6L18.9 10.3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span class="brand-name">FaceMatch</span>
+        </a>
+    </header>
+
+    <main class="main">
+        <img class="side-face side-face--left"  src="side-images/0d5cdfc5-d9f7-4a7a-8f26-48f88a2f205b.png" alt="" aria-hidden="true">
+        <img class="side-face side-face--right" src="side-images/屏幕截图 2026-03-24 235459.png" alt="" aria-hidden="true">
+
+        <div class="card">
+            <div class="card-logo">
+                <svg width="44" height="44" viewBox="0 0 28 28" fill="none">
+                    <path d="M14 2C19.2 2 23.8 6.3 23.8 11.6C23.8 18.8 18.8 24.8 14 26C9.2 24.8 4.2 18.8 4.2 11.6C4.2 6.3 8.8 2 14 2Z" stroke="currentColor" stroke-width="2"/>
+                    <path d="M9.2 13.2L12.6 16.6L18.9 10.3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+
+            <div class="card-title">欢迎回来</div>
+            <div class="card-sub">请选择登录方式进入 FaceMatch</div>
+
+            <div class="login-switch">
+                <button class="login-tab active" id="policeTab" type="button">警号登录</button>
+                <button class="login-tab" id="adminTab" type="button">管理员登录</button>
+            </div>
+
+            <div class="login-hint" id="loginHint">请输入警号和对应密码</div>
+
+            <div class="error-msg" id="errorMsg">账号或密码错误，请重试</div>
+
+            <div class="field">
+                <label for="username" id="usernameLabel">警号</label>
+                <input type="text" id="username" placeholder="请输入警号" autocomplete="username">
+            </div>
+
+            <div class="field">
+                <label for="password" id="passwordLabel">密码</label>
+                <input type="password" id="password" placeholder="请输入对应密码" autocomplete="current-password">
+            </div>
+
+            <div class="row-extra">
+                <label class="remember">
+                    <input type="checkbox" id="remember"> 记住我
+                </label>
+                <a class="forgot" href="#">忘记密码？</a>
+            </div>
+
+            <button class="btn-login" id="loginBtn">登 录</button>
+        </div>
+    </main>
+
+    <script>
+        const loginBtn = document.getElementById('loginBtn');
+        const username = document.getElementById('username');
+        const password = document.getElementById('password');
+        const errorMsg = document.getElementById('errorMsg');
+        const policeTab = document.getElementById('policeTab');
+        const adminTab = document.getElementById('adminTab');
+        const usernameLabel = document.getElementById('usernameLabel');
+        const passwordLabel = document.getElementById('passwordLabel');
+        const loginHint = document.getElementById('loginHint');
+
+        let loginMode = 'police';
+
+        loginBtn.addEventListener('click', handleLogin);
+        password.addEventListener('keypress', e => { if (e.key === 'Enter') handleLogin(); });
+        policeTab.addEventListener('click', () => switchMode('police'));
+        adminTab.addEventListener('click', () => switchMode('admin'));
+
+        function switchMode(mode) {
+            loginMode = mode;
+            errorMsg.classList.remove('show');
+            username.value = '';
+            password.value = '';
+
+            if (mode === 'police') {
+                policeTab.classList.add('active');
+                adminTab.classList.remove('active');
+                usernameLabel.textContent = '警号';
+                passwordLabel.textContent = '密码';
+                username.placeholder = '请输入警号';
+                password.placeholder = '请输入对应密码';
+                loginHint.textContent = '请输入警号和对应密码';
+            } else {
+                adminTab.classList.add('active');
+                policeTab.classList.remove('active');
+                usernameLabel.textContent = '管理员账号';
+                passwordLabel.textContent = '密码';
+                username.placeholder = '请输入管理员账号';
+                password.placeholder = '请输入管理员密码';
+                loginHint.textContent = '管理员仅支持固定账号密码登录';
+            }
+        }
+
+        function handleLogin() {
+            const u = username.value.trim();
+            const p = password.value.trim();
+
+            if (!u || !p) {
+                showError(loginMode === 'police' ? '请输入警号和密码' : '请输入管理员账号和密码');
+                return;
+            }
+
+            if (loginMode === 'admin' && (u !== '2462406023' || p !== '123123')) {
+                showError('管理员账号或密码错误');
+                return;
+            }
+
+            loginBtn.textContent = '登录中...';
+            loginBtn.disabled = true;
+
+            setTimeout(() => {
+                const displayName = loginMode === 'police' ? `警员 ${u}` : '管理员';
+                localStorage.setItem('user', JSON.stringify({
+                    username: displayName,
+                    role: loginMode,
+                    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${displayName}`
+                }));
+                window.location.href = 'home.html';
+            }, 700);
+        }
+
+        function showError(msg) {
+            errorMsg.textContent = msg;
+            errorMsg.classList.add('show');
+            loginBtn.textContent = '登 录';
+            loginBtn.disabled = false;
+            setTimeout(() => errorMsg.classList.remove('show'), 3000);
+        }
+    </script>
+</body>
+</html>
