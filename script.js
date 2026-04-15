@@ -48,6 +48,33 @@ const featureMapping = {
     '黑色外套': [24, 12, 26, 2],
 };
 
+const featureLabels = {
+    '眼镜': '佩戴眼镜',
+    '背包': '携带双肩包',
+    '黑色外套': '身穿黑色外套'
+};
+
+const arrowPointers = {
+    '眼镜': [
+        { startX: 90, startY: 5, endX: 60, endY: 8, label: '眼镜' },
+        { startX: 90, startY: 5, endX: 55, endY: 8, label: '眼镜' },
+        null,
+        null
+    ],
+    '背包': [
+        { startX: 90, startY: 35, endX: 45, endY: 38, label: '背包' },
+        null,
+        { startX: 90, startY: 35, endX: 40, endY: 38, label: '背包' },
+        null
+    ],
+    '黑色外套': [
+        { startX: 90, startY: 25, endX: 50, endY: 28, label: '黑色外套' },
+        { startX: 90, startY: 25, endX: 50, endY: 28, label: '黑色外套' },
+        { startX: 90, startY: 25, endX: 50, endY: 28, label: '黑色外套' },
+        { startX: 90, startY: 25, endX: 50, endY: 28, label: '黑色外套' }
+    ]
+};
+
 const allFaces = [
     { id: 1,  name: '目标人物 001', image: 'criminal-images/131_1.jpg' },
     { id: 2,  name: '目标人物 002', image: 'criminal-images/135_1.jpg' },
@@ -93,6 +120,14 @@ const videoGrid = document.getElementById('videoGrid');
 const gallery = document.getElementById('gallery');
 const emptyState = document.getElementById('emptyState');
 const imageEmptyState = document.getElementById('imageEmptyState');
+const detailModal = document.getElementById('detailModal');
+const detailClose = document.getElementById('detailClose');
+const detailImg = document.getElementById('detailImg');
+const detailName = document.getElementById('detailName');
+const detailMatch = document.getElementById('detailMatch');
+const detailId = document.getElementById('detailId');
+
+let currentQuery = '';
 
 const loadingImages = [
     'criminal-images/131_1.jpg',
@@ -107,24 +142,36 @@ document.addEventListener('DOMContentLoaded', () => {
     updateRegionSummary();
     initUser();
     renderImages([]);
+    renderVideos([]);
     searchBtn.addEventListener('click', handleSearch);
     searchInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') handleSearch();
     });
     provinceSelect.addEventListener('change', handleProvinceChange);
     citySelect.addEventListener('change', handleCityChange);
-    districtSelect.addEventListener('change', updateRegionSummary);
+    districtSelect.addEventListener('change', handleDistrictChange);
+    detailClose?.addEventListener('click', closeDetailModal);
+    detailModal?.addEventListener('click', (e) => {
+        if (e.target === detailModal) closeDetailModal();
+    });
 });
 
 function handleProvinceChange() {
     populateCities();
     populateDistricts();
     updateRegionSummary();
+    updateVideoPreview();
 }
 
 function handleCityChange() {
     populateDistricts();
     updateRegionSummary();
+    updateVideoPreview();
+}
+
+function handleDistrictChange() {
+    updateRegionSummary();
+    updateVideoPreview();
 }
 
 function populateCities() {
@@ -170,30 +217,32 @@ function updateRegionSummary() {
     regionSummary.textContent = `当前区域：${province} / ${city} / ${district}`;
 }
 
-function handleSearch() {
+function updateVideoPreview() {
     const province = provinceSelect.value;
     const city = citySelect.value;
     const district = districtSelect.value;
+    const videos = getVideoResults(province, city, district);
+
+    renderVideos(videos);
+    resultCount.textContent = videos.length ? `已调取 ${videos.length} 路视频` : '等待区域选择';
+}
+
+function handleSearch() {
     const query = searchInput.value.trim();
 
-    playSearchLoading(loadingImages, 1800, () => {
-        if (province && city && district) {
-            const videos = getVideoResults(province, city, district);
-            renderVideos(videos);
-            resultCount.textContent = videos.length ? `已调取 ${videos.length} 路视频` : '暂无相关视频';
-        } else {
-            renderVideos([]);
-            resultCount.textContent = '请选择完整地区';
-        }
+    if (!query) {
+        currentQuery = '';
+        renderImages([]);
+        imageResultCount.textContent = '请输入特征词';
+        return;
+    }
 
-        if (query) {
-            const imageResults = getImageResults(query);
-            renderImages(imageResults);
-            imageResultCount.textContent = imageResults.length ? `找到 ${imageResults.length} 个匹配结果` : '暂无人物结果';
-        } else {
-            renderImages([]);
-            imageResultCount.textContent = '等待特征检索';
-        }
+    currentQuery = query;
+
+    playSearchLoading(loadingImages, 1800, () => {
+        const imageResults = getImageResults(query);
+        renderImages(imageResults);
+        imageResultCount.textContent = imageResults.length ? `找到 ${imageResults.length} 个匹配结果` : '暂无人物结果';
     });
 }
 
@@ -282,8 +331,110 @@ function renderImages(items) {
                 <div class="gallery-item-name">${item.name}</div>
                 <div class="gallery-item-match"><span class="match-badge">匹配度 ${item.match}%</span></div>
             </div>`;
+        el.addEventListener('click', () => openDetailModal(item, index));
         gallery.appendChild(el);
     });
+}
+
+function openDetailModal(item, index) {
+    if (!detailModal) return;
+
+    detailImg.src = item.image;
+    detailImg.alt = item.name;
+    detailName.textContent = item.name;
+    detailMatch.textContent = `匹配度：${item.match}%`;
+    detailId.textContent = `ID: ${String(item.id).padStart(3, '0')}`;
+
+    detailModal.querySelectorAll('.arrow-pointer').forEach(a => a.remove());
+    detailModal.classList.add('active');
+
+    const matchedKeywords = Object.keys(arrowPointers).filter(key => currentQuery.includes(key));
+    if (!matchedKeywords.length) return;
+
+    const drawAll = () => {
+        detailModal.querySelectorAll('.arrow-pointer').forEach(a => a.remove());
+        matchedKeywords.forEach((keyword) => {
+            const arrow = arrowPointers[keyword]?.[index] || null;
+            if (arrow) {
+                drawArrow(arrow);
+            }
+        });
+    };
+
+    if (detailImg.complete) {
+        drawAll();
+    } else {
+        detailImg.onload = drawAll;
+    }
+}
+
+function drawArrow(arrow) {
+    const container = detailImg.parentElement;
+    container.style.position = 'relative';
+
+    const imgW = detailImg.offsetWidth;
+    const imgH = detailImg.offsetHeight;
+    const imgL = detailImg.offsetLeft;
+    const imgT = detailImg.offsetTop;
+
+    const startX = imgL + imgW * arrow.startX / 100;
+    const startY = imgT + imgH * arrow.startY / 100;
+    const endX = imgL + imgW * arrow.endX / 100;
+    const endY = imgT + imgH * arrow.endY / 100;
+    const midX = (startX + endX) / 2;
+
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'arrow-pointer');
+    svg.setAttribute('width', container.offsetWidth);
+    svg.setAttribute('height', container.offsetHeight);
+    svg.style.position = 'absolute';
+    svg.style.top = '0';
+    svg.style.left = '0';
+    svg.style.pointerEvents = 'none';
+    svg.style.zIndex = '20';
+
+    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+    const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+    marker.setAttribute('id', `arrowhead-${arrow.label.replace(/\s+/g, '-')}`);
+    marker.setAttribute('markerWidth', '10');
+    marker.setAttribute('markerHeight', '10');
+    marker.setAttribute('refX', '9');
+    marker.setAttribute('refY', '3');
+    marker.setAttribute('orient', 'auto');
+
+    const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    polygon.setAttribute('points', '0 0, 10 3, 0 6');
+    polygon.setAttribute('fill', '#ff8c3c');
+    marker.appendChild(polygon);
+    defs.appendChild(marker);
+    svg.appendChild(defs);
+
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+    line.setAttribute('class', 'arrow-line');
+    line.setAttribute('points', `${startX},${startY} ${midX},${startY} ${endX},${endY}`);
+    line.setAttribute('stroke', '#ff8c3c');
+    line.setAttribute('stroke-width', '3');
+    line.setAttribute('fill', 'none');
+    line.setAttribute('stroke-linecap', 'round');
+    line.setAttribute('stroke-linejoin', 'round');
+    line.setAttribute('marker-end', `url(#arrowhead-${arrow.label.replace(/\s+/g, '-')})`);
+    svg.appendChild(line);
+
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', startX + 8);
+    text.setAttribute('y', startY - 8);
+    text.setAttribute('font-size', '14');
+    text.setAttribute('font-weight', '700');
+    text.setAttribute('fill', '#1a1a1a');
+    text.textContent = arrow.label;
+    svg.appendChild(text);
+
+    container.appendChild(svg);
+}
+
+function closeDetailModal() {
+    detailModal?.classList.remove('active');
+    detailModal?.querySelectorAll('.arrow-pointer').forEach(a => a.remove());
 }
 
 function renderVideos(items) {

@@ -427,7 +427,13 @@
                 return;
             }
 
-            if (loginMode === 'admin' && (u !== '2462406023' || p !== '123123')) {
+            if (loginMode === 'police') {
+                showError('警员账号暂时无法登录');
+                return;
+            }
+
+            const isValidAdmin = u === '2462406023' && p === '123123';
+            if (!isValidAdmin) {
                 showError('管理员账号或密码错误');
                 return;
             }
@@ -436,7 +442,7 @@
             loginBtn.disabled = true;
 
             setTimeout(() => {
-                const displayName = loginMode === 'police' ? `警员 ${u}` : '管理员';
+                const displayName = '管理员';
                 localStorage.setItem('user', JSON.stringify({
                     username: displayName,
                     role: loginMode,
